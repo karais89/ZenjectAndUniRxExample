@@ -12,5 +12,7 @@ Zenject 및 UniRx 연습용 프로젝트
 ## 레퍼런스
 
 ## Zenject
+- [공식 Github](https://github.com/modesttree/Zenject)
+- [공식 메뉴얼 번역](~Document/zenject-manual-ko.md)
 
 ## UniRx
