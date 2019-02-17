@@ -29,5 +29,11 @@ Zenject 및 UniRx 연습용 프로젝트
 - [[160402_데브루키_박민근] UniRx 소개 - SlideShare](https://www.slideshare.net/agebreak/160402-unirx)
 - [[UniRx] 미래의 프로그래밍 기술을 Unity로 -UniRx- @toRisouP (작성중)](http://blog.ejonghyuck.net/220414547578)
 
+### UniRx & MVP
+
+- [Unity에서 배울 MVP 패턴 (1) - UniRx을 사용하여 체력 Bar를 만들자](https://qiita.com/nebusokuhibari/items/5e0c36c3b0df78110d32)
+- [Unity에서 배울 MVP 패턴 (2) - View 구성 요소를 복수로한다](https://qiita.com/nebusokuhibari/items/f2c3403859422f5c0e20)
+- [Unity에서 배울 MVP 패턴 (2) - UniRx 대신 PropertyChangedEventHandler을 사용](https://qiita.com/nebusokuhibari/items/81428f6e5e575318d84a)
+
 ### 관련문서
 - [MV(R)P](~Document/MV(R)P.md)
