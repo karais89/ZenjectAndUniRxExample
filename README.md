@@ -24,3 +24,9 @@ Zenject 및 UniRx 연습용 프로젝트
 - [DI](~Document/DI.md)
 
 ## UniRx
+- [공식 Github](https://github.com/neuecc/UniRx)
+- [[160402_데브루키_박민근] UniRx 소개 - SlideShare](https://www.slideshare.net/agebreak/160402-unirx)
+- [[UniRx] 미래의 프로그래밍 기술을 Unity로 -UniRx- @toRisouP (작성중)](http://blog.ejonghyuck.net/220414547578)
+
+### 관련문서
+- [MV(R)P](~Document/MV(R)P.md)
