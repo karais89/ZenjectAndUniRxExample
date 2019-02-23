@@ -41,6 +41,8 @@ Zenject 및 UniRx 연습용 프로젝트
 - https://uguisudani-media.com/unirx/
 - http://ntgame.wpblog.jp/2018/07/15/post-1801/
 
+### UniRx ObservableWWW & UnityWebRequest
+- [Obsolete("Use UnityWebRequest, a fully featured replacement which is more efficient and has additional features")]
 
 ### 관련문서
 - [MV(R)P](~Document/MV(R)P.md)
