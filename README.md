@@ -26,8 +26,8 @@ Zenject 및 UniRx 연습용 프로젝트
 ## UniRx
 ![UniRx Logo](~Document/images/UniRxLogo.png)
 - [공식 Github](https://github.com/neuecc/UniRx)
-- [[160402_데브루키_박민근] UniRx 소개 - SlideShare](https://www.slideshare.net/agebreak/160402-unirx)
-- [[Unite17] 유니티에서차세대프로그래밍을 UniRx 소개 및 활용](https://www.slideshare.net/agebreak/unite17-unirx)
+- [선행 지식 : C# Linq](~Document/Linq.md)
+- [[Unite17] 유니티에서차세대프로그래밍을 UniRx 소개 및 활용 정리](~Document/UniRxExample.md)
 - [[UniRx] 미래의 프로그래밍 기술을 Unity로 -UniRx- @toRisouP (작성중)](http://blog.ejonghyuck.net/220414547578)
 
 ### UniRx & MVP
