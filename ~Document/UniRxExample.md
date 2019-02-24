@@ -130,7 +130,78 @@ private void Start()
     - OnNext & OnCompleted
     - OnNext & OnError & OnCompleted
 
+```csharp
+// ObservableWW Obsolete 2018.3
+ObservableWWW.Get("http://unity-chan.com/")
+    .Subscribe(result =>
+    {
+        // OnNext
+        Debug.Log(result);
+    }, ex =>
+    {
+        // OnError
+        Debug.LogError(ex);
+    }, () =>
+    {
+        // OnCompleted
+        Debug.Log("Done!");
+    });
+```
+
+### 전체 흐름
+
+```csharp
+public Button button;
+public Text text;
+
+private void Start()
+{
+    // 버튼 클릭 이벤트를 스트림으로 변경해서 메시지가 도착할 때에 텍스트에 "Clicked"를 표시한다.
+    button.onClick 
+        .AsObservable() 
+        .Subscribe(_ => text.text += "Clicked\n");
+}
+```
+
+### Subscribe의 타이밍
+
+- Awake() / Start()에서 Subscribe 해야 한다.
+- Update()에 쓰면 무수한 스트림이 생성 된다.
+
+### 보너스
+
+```csharp
+button
+    .OnClickAsObservable()
+    .SubscribeToText(text, _ => text.text += "clicked\n");
+```
+- UniRx에는, UGUI용의 Obserable과 Subscribe가 준비되어 있다. 앞의 내용을 이걸로 간략화 할 수 있다.
+
 ## 3. 스트림을 사용하는 메리트와 예
+- 이벤트의 투영, 필터링, 합성등이 가능하다.
+
+### 버튼이 3회 눌리면 Text에 표시한다
+- 버튼이 클릭된 횟수를 카운트 한다?
+    - 카운트용의 변수를 필드에 정의 한다?
+- Buffer(3)을 추가만 하면 된다.
+    - 굳이 필드 변수 추가 필요 없다.
+    - 혹은 Skip(2)로도 똑같은 동작을 한다.
+        - 여기에서는 이해를 돕기위해 Buffer을 사용했지만, n회후에 동작하는 경우에는 Skip 쪽이 적절하다.
+
+```csharp
+button.OnClickAsObservable()
+    .Buffer(3)
+    .SubscribeToText(text, _ => text.text + "clicked\n");
+```
+
+#### Buffer
+- 메시지를 모아서 특정 타이밍에 보낸다
+    - 방출 조건은 여러가지 지정이 가능하다
+        - n개 모아서 보내기
+        - 다른 스트림에 메시지가 흐르면, 보내기
+
+![UniRx Buffer](images/unirx_buffer.jpg)
+
 ## 4. 자주 사용하는 오퍼레이터 설명
 ## 5. Unity에서의 실용 사례 4가지
 ## 6. 정리
