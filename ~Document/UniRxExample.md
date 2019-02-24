@@ -202,6 +202,139 @@ button.OnClickAsObservable()
 
 ![UniRx Buffer](images/unirx_buffer.jpg)
 
+### Button이 둘 다 눌리면 Text에 표시 한다
+- 양쪽이 교차로 1회씩 눌릴 때 Text에 표시한다
+    - 연타하더라도 [1회 눌림]으로 판정한다
+
+```csharp
+button1.OnClickAsObservable()
+    .Zip(button2.OnClickAsObservable(), (b1, b2) => "Clicked!")
+    .First() // 1번 동작한 후에
+    .Repeat() // Zip내의 버퍼를 클리어 한다
+    .SubscribeToText(text, x => text.text + x + "\n");
+```
+
+### Zip
+- 여러 개의 스트림의 메시지가 완전히 모일때까지 기다림
+    - 메시지가 모인때에 하나의 이벤트로 취급해서 보낸다
+    - 합쳐진 메시지는 임의로 가공해서 출력이 가능하다
+
+![UniRx Zip](images/unirx_zip.jpg)
+
+### Rx 정리
+- Rx을 사용하지 않는 종래의 방법에서 이벤트를 받은 후에 어떻게 할것인가를 작성 하였다.
+- Rx에서는 이벤트를 받기 전에 무엇을 하고 싶다를 작성한다
+- [스트림을 가공해서 자신이 받고 싶은 이벤트만 통지 받으면 좋잖아!]
+
+정리하면 Rx는
+1. 스트림을 준비해서
+2. 스트림을 오퍼레이터로 가공 해서
+3. 최후에 Subscribe 한다
+라는 개념으로 사용 된다.
+
 ## 4. 자주 사용하는 오퍼레이터 설명
+
+오퍼레이터 : 스트림을 조작하는 메소드
+
+스트림에 조작을 가하는 함수 (무진장 많다!)
+```
+Select, Where, Skp, SkipUntil, SkipWhile, Take, TakeUntil, TakeWhile, Throttle, Zip, Merge, CombineLatest, Distinct, DistinctUntilChanged, Delay, DelayFrame, First, FirstOfDefault, Last, LastOfDefault, StartWith, Concat, Buffer, Cast, Catch, CatchIgnore, ObserveOn, Do, Sample, Scan, Single, SingleOrDefault, Retry, Repeat, Time, TimeStamp, TieInterval..
+```
+다른 말로 자신이 구현하고 싶은 기능들은 왠만하면 제공되는 오퍼레이터로 구현할 수 있다!
+
+### Where
+- 조건을 만족하는 메시지만 통과 시키는 오퍼레이터
+    - 다른 언어에서는 [filter]라고도 한다.
+
+![UniRx Where](images/unirx_where.png)
+
+### Select
+- 요소의 값을 변경한다
+    - 다른 언어에서는 [map]이라고 한다.
+
+![UniRx Select](images/unirx_select.png)
+
+### SelectMany
+- 새로운 스트림을 생성하고, 그 스트림이 흐르는 메시지를 본래의 스트림의 메시지로 취급
+    - 스트림을 다른 스트림으로 교체하는 이미지 (정밀히 말하면 다름)
+    - 다른 언어에서는 [flatMap]이라고도 한다.
+
+![UniRx Select Many](images/unirx_select_many.jpg)
+
+### Throttle/ThrottleFrame
+- 도착한 때에 최후의 메시지를 보낸다
+    - 메시지가 집중해서 들어 올때에 마지막 이외를 무시 한다
+    - 다른 언어에서는 [debounce]라고도 한다
+    - 자주 사용됨
+
+![UniRx Throttle](images/unirx_throttle.png)
+
+### ThrottleFirst/ThrottleFirstFrame
+- 최초에 메시지가 올때부터 일정 시간 무시한다.
+    - 하나의 메시지가 온때부터 잠시 메시지를 무시한다
+    - 대용량으로 들어오는 데이터의 첫번째만 사용하고 싶을 때 유효
+
+![UniRx Throttle First](images/unirx_throttle_first.jpg)
+
+### Delay/DelayFrame
+- 메시지의 전달을 연기한다.
+
+![UniRx Delay](images/unirx_delay.png)
+
+### DistinctUntilChanged
+- 메시지가 변화한 순간에만 통지한다
+    - 같은 값이 연속되는 경우에는 무시한다
+
+![UniRx DistinctUntilChanged](images/unirx_distinct_until_changed.png)
+
+### SkipUntil
+- 지정한 스트림에 메시지가 올때까지 메시지를 Skip 한다.
+    - 같은 값이 연속되는 경우에는 무시한다.
+
+![UniRx SkipUntil](images/unirx_skip_until.jpg)
+
+### TakeUntil
+- 지정한 스트림에 메시지가 오면, 자신의 스트림에 OnCompleted를 보내서 종료한다.
+
+![UniRx TakeUntil](images/unirx_take_until.jpg)
+
+### Repeat
+- 스트림이 OnCompleted로 종료될 때에 다시 한번 Subscribe를 한다.
+
+### SkipUntil + TakeUntil + Repeat
+- 자주 사용되는 조합
+    - 이벤트 A가 올때부터 이벤트 B가 올때까지 처리를 하고 싶을때 사용
+
+예) 드래그로 오브젝트를 회전 시키기
+- MouseDown이 올 때부터 Mouse up이 올때까지 처리할 때
+```csharp
+public class MouseDrag : MonoBehaviour
+{
+    private float _rotationSpeed = 500.0f;
+    void Start()
+    {
+        // OnMouseDown과 OnMouseUp의 조합으로 드래그 만 처리하는
+        this.UpdateAsObservable() // Update ()의 타이밍을 알려 Observable
+            .SkipUntil(this.OnMouseDownAsObservable()) // 마우스가 클릭 될 때까지 스트림을 무시
+            .Select(_ => new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"))) // 마우스의 이동량을 스트림에 흐르는
+            .TakeUntil(this.OnMouseUpAsObservable()) // 마우스를 놓을 때까지
+            .Repeat() // TakeUntil 스트림이 종료하기 때문에 다시 Subscribe
+            .Subscribe(move =>
+            {
+                // 개체를 드래그하여 개체를 회전
+                transform.rotation =
+                    Quaternion.AngleAxis(move.y * _rotationSpeed * Time.deltaTime, Vector3.right)
+                    * Quaternion.AngleAxis(move.x * _rotationSpeed * Time.deltaTime, Vector3.up)
+                    * transform.rotation;
+
+            });
+    }
+}
+```
+
+### First
+
+### 앞의 Zip 예제에서 First + Repat를 사용한 의도
+
 ## 5. Unity에서의 실용 사례 4가지
 ## 6. 정리
