@@ -334,7 +334,54 @@ public class MouseDrag : MonoBehaviour
 
 ### First
 
+스트림에 최초로 받은 메시지만 보낸다
+- OnNext 직후에 OnComplete도 보낸다
+
+![UniRx First](images/unirx_first.png)
+
 ### 앞의 Zip 예제에서 First + Repat를 사용한 의도
 
-## 5. Unity에서의 실용 사례 4가지
+- First + Repeat로 1회 동작할때마다 스트림을 다시 만든다 (Zip내의 메시지큐를 리셋하기 위해)
+```csharp
+button1.OnClickAsObservable()
+    .Zip(button2.OnClickAsObservable(), (b1, b2) => "Clicked!")
+    .First()
+    .Repeat()
+    .SubscribeToText(text, x => text.text + x + "\n");
+```
+
+## 5. Unity에서의 실용 사례 5가지
+
+### 1. 더블 클릭 판정
+
+```csharp
+// 클릭 스트림을 정의
+var clickStream = this.UpdateAsObservable()
+    .Where(_ => Input.GetMouseButtonDown(0));
+```
+
+![UniRx Click stream](images/unirx_click_stream.png)
+
+```csharp
+// buffer : 클릭 스트림을 멈춰둔다 개방조건은
+// throttle : 최후에 클릭된 이후 200미리초 경과할 때
+clickStream.Buffer(clickStream.Throttle(TimeSpan.FromMilliseconds(200)))
+    .Where(x => x.Count >= 2)
+    .SubscribeToText(text, x => $"DoubleClick detected!\n Count:{x.Count}");
+```
+
+![UniRx Click stream2](images/unirx_click_stream2.png)
+
+- buffer의 해제는 throttle를 사용하여 해제한다.
+- throttle은 마지막에 값이 오고 나서 일정시간 경과하면 발생한다.
+- 첫번째 클릭 이후 0.2초 후에 throttle이 발생하고, 그 이후 버퍼가 해제되면서 where 조건을 검사해 2 이상이면 where 절을 통과하고 Subscribe가 된다.
+
+### 2. 값의 변화를 감시하기
+
+### 3. 값의 변화를 가다듬기
+
+### 4. WWW를 사용하기 쉽게 하기
+
+### 5. 기존 라이브러리를 스트림으로 변환하기
+
 ## 6. 정리

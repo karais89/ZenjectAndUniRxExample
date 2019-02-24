@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UniRx;
+using UniRx.Triggers;
 using UnityEngine.UI;
 
 namespace Assets.UniRxExample.MouseDoubleClick
@@ -17,7 +18,10 @@ namespace Assets.UniRxExample.MouseDoubleClick
         {
             // UniRx Sample 08_DetectDoubleClick
             // _ = clickStream count
-            var clickStream = Observable.EveryUpdate()
+            //var clickStream = Observable.EveryUpdate()
+            //    .Where(_ => Input.GetMouseButtonDown(0));
+
+            var clickStream = this.UpdateAsObservable()
                 .Where(_ => Input.GetMouseButtonDown(0));
 
             clickStream.Buffer(clickStream.Throttle(TimeSpan.FromMilliseconds(200)))
