@@ -378,6 +378,71 @@ clickStream.Buffer(clickStream.Throttle(TimeSpan.FromMilliseconds(200)))
 
 ### 2. 값의 변화를 감시하기
 
+#### 플레이어가 지면에 떨어지는 순간에 이펙트를 발생
+
+지면에 떨어진 순간의 감지 방법
+1. CharacterController.isGrounded를 매 프레임 체크
+2. 현재 프레임의 값을 필드 변수에 저장
+3. 매프레임에 False -> True로 변화할 때에 이펙트를 재생한다.
+
+기존 방법
+```csharp
+public class OnGroundedWithoutUniRx : MonoBehaviour
+{
+    public CharacterController characterController;
+    public ParticleSystem particleSystem;
+    private bool _oldFlag;
+
+    void Start()
+    {
+        _oldFlag = characterController.isGrounded;
+    }
+
+    void Update()
+    {
+        bool cntFlag = characterController.isGrounded;
+        if (cntFlag && !_oldFlag)
+        {
+            particleSystem.Play();
+        }
+        _oldFlag = cntFlag;
+    }
+}
+```
+- 훅 보면 뭘 하는지 판단하기 어렵다!
+- 플래그가 2개 필요하다. (oldFlag, cntFlag)
+
+unirx를 사용한 방법
+```csharp
+public class OnGroundedUniRx : MonoBehaviour
+{
+    public CharacterController characterController;
+    public ParticleSystem particleSystem;
+
+    void Start()
+    {
+        this.UpdateAsObservable()
+            .Select(_ => characterController.isGrounded)
+            .DistinctUntilChanged()
+            .Where(x => x)
+            .Subscribe(_ => particleSystem.Play());
+    }
+}
+```
+
+![UniRx Value Changed](images/unirx_value_changed.png)
+
+#### ObserveEveryValueChanged
+
+- 매 프레임 값의 변화를 감시한다면 [ObserveEveryValueChanged]의 쪽이 심플하다
+
+```csharp
+characterController
+    .ObserveEveryValueChanged(x => x.isGrounded)
+    .Where(x => x)
+    .Subscribe(_ => particleSystem.Play());
+```
+
 ### 3. 값의 변화를 가다듬기
 
 ### 4. WWW를 사용하기 쉽게 하기
