@@ -445,8 +445,144 @@ characterController
 
 ### 3. 값의 변화를 가다듬기
 
+isGrounded의 정밀도의 개선
+- 곡면을 이동하게 되면 True/False가 격렬하게 변한다
+- 이 값의 변화를 UniRx로 정제해 보자
+- isGrounded의 변화를 Throttle로 무시한다
+- DistinctUntilChanged와 같이 쓰면 OK
+
+```csharp
+this.UpdateAsObservable()
+    .Select(_ => characterController.isGrounded)
+    .DistinctUntilChanged()
+    .ThrottleFrame(5)
+    .Subscribe(_ => throttledIsGrounded = x);
+```
+
+![UniRx IsGrounded](images/unirx_isgrounded.png)
+
 ### 4. WWW를 사용하기 쉽게 하기
+
+Unity가 준비한 HTTP 통신용 모듈
+- 코루틴으로 사용할 필요가 있다
+- 그래서 사용 편의성이 좋지는 않다
+
+WWW를 Observable로써 취급할 수 있게 한것
+- Subscribe된 순간에 통신을 실행한다
+- 나중에 알아서 뒤에서 통신한 결과를 스트림에 보내준다
+- 코루틴을 사용하지 않아도 된다.
+
+```csharp
+ObservableWWW.Get("http://torisoup.net/index.html")
+    .Subscribe(result => Debug.Log(result));
+```
+
+#### 예제) 버튼이 눌리면 텍스쳐를 읽어 온다
+
+```csharp
+button.OnClickAsObservable()
+    .First() // 버튼을 연타해도 통신은 1회만 하도록 First를 넣는다
+    .SelectMany(ObservableWWW.GetWWW(resourceURL)) // 클릭 스트림을 ObservableWWW의 스트림으로 덮어쓴다.
+    .Select(www => Sprite.Create(www.texture, new Rect(0, 0, 400, 400), Vector2.zero))
+    .Subscribe(sprite =>
+    {
+        image.sprite = sprite;
+        button.interactable = false;
+    }, Debug.LogError);
+```
+
+복잡한 작업도 위에서부터 읽으면 무엇을 하는지 쉽게 이해 된다
+1. 버튼이 클릭되면
+2. HTTP로 텍스쳐를 다운로드 해서
+3. 그 결과를 Sprite로 변화해서
+4. Imag로 표시한다
+
+#### 타임 아웃을 추가하기
+```csharp
+button.OnClickAsObservable()
+    .First()
+    .SelectMany(ObservableWWW.GetWWW(resourceURL)).Timeout(TimeSpan.FromSeconds(3))
+    .Select(www => Sprite.Create(www.texture, new Rect(0, 0, 400, 400), Vector2.zero))
+    .Subscribe(sprite =>
+    {
+        image.sprite = sprite;
+        button.interactable = false;
+    }, Debug.LogError);
+```
+
+#### 동시에 통신해서 모든 데이터가 모이면 처리를 진행한다.
+
+```csharp
+var parallel = Observable.WhenAll(
+    ObservableWWW.Get("http://google.com/"),
+    ObservableWWW.Get("http://bing.com/"),
+    ObservableWWW.Get("http://unity3d.com/"));
+
+parallel.Subscribe(xs =>
+{
+    Debug.Log(xs[0].Substring(0, 100));
+    Debug.Log(xs[1].Substring(0, 100));
+    Debug.Log(xs[2].Substring(0, 100));
+});
+```
+
+#### 앞의 통신 결과를 사용해서 다음 통신을 실행한다
+- 서버에 [리소스의 URL]을 물어보고, 서버에서 가르쳐준 URL로부터 데이터를 다운로드 한다.
+
+```csharp
+var resoucePathURL = "http://torisoup.net/unirx-examples/resources/resourcepath.txt";
+ObservableWWW.Get(resoucePathURL)
+    .SelectMany(resourceUrl => ObservableWWW.Get(resourceUrl))
+    .Subscribe(Debug.Log);
+```
+
+- resourcepath.txt에 적혀있는 URL에 액세스하는 코드
 
 ### 5. 기존 라이브러리를 스트림으로 변환하기
 
+기존 라이브러리를 스트림으로 변환 (포톤 클라우드 예제)
+
+Unity에서 간단히 네트워크 대전이 구현 가능한 라이브러리 통지가 전부 콜백이어서 미묘하게 사용하기가 나쁘다
+- UniRx로 어떻게든 해보자!
+- 포튼클라우드의 콜백이 스트림으로 변환된다
+- 복잡한 콜백은 숨기자
+
+#### 콜백으로부터 스트림을 변경하는 메리트
+코드가 명시적이 된다
+- 포톤의 콜백은 SendMessage로 호출된다
+- Observable의 제대로 정의해서 사용하면 명시적이 된다
+
+다양한 오퍼레이터에 의한 유연한 제어가 가능해 지게 된다
+- 로그인이 실패하면 3초후에 다시 리트라이 시도하던가
+- 유저들로부터 요청이 있을때 처리를 한다던가
+- 방정보 리스트가 갱신될때 통지 한다던가
+
+#### 예) 최신 방정보를 통신하는 스트림을 만들자
+
+OnReceivedRoomListUpdate
+- PhtonNetwork.GetRoomList()가 변경될때에 실행된다
+- 이것을 스트림으로 만들어 보자
+
+#### 스트림의 소스를 만드는 법
+Obserable의 팩토리 메소드를 사용
+기존의 이벤트등으로부터 변경한다
+Subject<T>계를 사용
+ReactiveProperty<T>를 사용
+
+#### ReactiveProperty
+
+- Subscribe가 가능한 변수
+- Observable로서 subscribe가 가능하다
+- 값이 쓸때에 OnNext 메시지가 날라간다
+
 ## 6. 정리
+
+UniRx는 편리하니까 사용해보자!!
+- [시간]을 상당히 간단히 취급할 수 있게 된다
+- GUI 관련 구현도 간단히 쓸 수 있다
+- 게임 로직에 적용하는 것도 가능하다
+UniRx는 편리하지만, 어려운 면도 있다
+- 학습 코스트가 높고 개념적으로 어렵다
+- 도입하는 경우에는 프로그램의 설계부터 다시 생각할 필요가 생긴다
+    - 진가를 발휘하기 위해서는 설계 근본에서 UniRx를 포함시켜야 함
+    - [편리한 라이브러리]가 아닌 [언어 확장]이라고 생각할 필요가 있다
