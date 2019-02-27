@@ -586,3 +586,118 @@ UniRx는 편리하지만, 어려운 면도 있다
 - 도입하는 경우에는 프로그램의 설계부터 다시 생각할 필요가 생긴다
     - 진가를 발휘하기 위해서는 설계 근본에서 UniRx를 포함시켜야 함
     - [편리한 라이브러리]가 아닌 [언어 확장]이라고 생각할 필요가 있다
+
+## 추가 내용
+
+### 1. UniRx의 사용예
+
+#### Update를 없애기
+- Update()를 Observable로 변환해서 Awake()/Start()에 모아서 작성하기
+
+```csharp
+void Update()
+{
+    if (canPlayerMove)
+    {
+        var inputVector = (new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")));
+
+        if (inputVector.magnitude > 0.5f)
+        {
+            Move(inputVector.normalized);
+        }
+
+        if (isOnGrounded && Input.GetButtonDown("Jump"))
+        {
+            Jump();
+        }
+    }
+
+    if (ammoCount > 0)
+    {
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            Attack();
+        }
+    }
+}
+```
+- 하고 싶은 것을 순차적으로 작성해야 해서, 흐름이 따라가기 힘들다.
+
+```csharp
+void Start()
+{
+    // 이동 가능할때에 이동키가 일정 이상 입력 받으면 이동
+    this.UpdateAsObservable()
+        .Where(_ => canPlayerMove)
+        .Select(_ => new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")))
+        .Where(inputVector => inputVector.magnitude > 0.5f)
+        .Subscribe(Move);
+
+    // 이동 가능하고, 지면에 있을때에 점프 버튼이 눌리면 점프
+    this.UpdateAsObservable()
+        .Where(_ => canPlayerMove && isOnGrounded && Input.GetButtonDown("Jump"))
+        .Subscribe(_ => Jump());
+
+    // 총알이 있는 경우 공격 버튼이 눌리면 공격
+    this.UpdateAsObservable()
+        .Where(_ => ammoCount > 0 && Input.GetKeyDown(KeyCode.A))
+        .Subscribe(_ => Attack());
+}
+```
+- 작업을 병렬로 작성할 수 있어서 읽기가 쉽다.
+
+#### Update를 없애기의 메리트
+작업별로 병렬로 늘어서 작성하는 것이 가능
+- 작업별로 스코프가 명시적이게 된다
+- 기능 추가, 제거, 변경이 용이해지게 된다
+- 코드가 선언적이 되어서, 처리의 의도가 알기 쉽게 된다
+RX의 오퍼레이터가 로직 구현에 사용 가능
+- 복잡한 로직을 오퍼레이터의 조합으로 구현 가능하다.
+
+#### Observable로 변경하는 3가지 방법
+UpdateAsObservable
+- 지정한 gameObject에 연동된 Observable가 만들어진다
+- gameObject의 Destroy때에 **OnCompleted**가 발행된다.
+
+Observable.EveryUpdate
+- gameObject로부터 **독립된** Observable이 만들어 진다
+- MonoBehaviour에 관계 없는 곳에서도 사용 가능
+
+ObserveEveryValueChanged
+- Observable.EveryUpdate의 파생 버전
+- 값의 변화를 **매프레임 감시**하는 Observable이 생성된다
+
+#### Observable.EveryUpdate의 주의점
+Destroy때에 OnCompleted가 발생되지 않는다
+- UpdateAsObservable과 같은 느낌으로 사용하면 함정에 빠진다.
+
+```csharp
+public Text text;
+void Start()
+{
+    Observable.EveryUpdate()
+        .Select(_ => transform.position)
+        .SubscribeToText(text);
+}
+```
+- 게임 오브젝트가 파괴되면 null이 되어 예외가 발생한다.
+
+#### 수명 관리의 간단한 방법
+
+AddTo
+- 특정 게임오브젝트가 파괴되면 자동 Dispose 되게 해준다
+- OnCompleted가 발행되는 것은 아니다
+
+```csharp
+public Text text;
+void Start()
+{
+    Observable.EveryUpdate()
+        .Select(_ => transform.position)
+        .SubscribeToText(text)
+        .AddTo(this.gameObject);
+}
+```
+- AddTo로 넘겨진 gameObject가 Destroy되면 같이 Dispose 된다.
+
+### 2. 마지막으로
